@@ -1,0 +1,13 @@
+[service]
+  [service.default]
+    endpoint = "api-server"
+    client_token = "client-token"
+    client_secret = "client-secret"
+    subdomain = "subdomain"
+    username_or_email = "username-or-email"
+
+[app]
+  [app.default]
+    app_id = "app-id"
+    role_arn = "role-arn"
+    principal_arn = "provider-arn"
