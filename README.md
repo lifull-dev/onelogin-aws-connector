@@ -21,6 +21,15 @@ How to setup OneLogin and AWS accounts is the following [OneLogin Help Center](h
 
 Init command initialize OneLogin API settings.
 
+```bash
+onelogin-aws-connector init \
+    --endpoint us \
+    --client-token [TOKEN] \
+    --client-secret [SECRET] \
+    --subdomain [SUBDOMAIN] \
+    --username-or-email [USERNAME_OR_EMAIL]
+```
+
 ### Init Command Line Options
 
 #### --endpoint `<us|eu>`
@@ -47,6 +56,14 @@ OneLogin Login Username or Email
 
 Configure command configure OneLogin and AWS connection settings.
 
+```bash
+onelogin-aws-connector configure \
+    --app-id [APP_ID] \
+    --role-arn [AWS_ROLE_ARN] \
+    --provider-arn [AWS_SAML_PROVIDER_ARN] \
+    --aws-profile [AWS_PROFILE_NAME]
+```
+
 ### Configure Command Line Options
 
 #### --app-id `string`
@@ -70,6 +87,12 @@ AWS Profile Name (default "default")
 Login command makes AWS credentials with OneLogin SAML.
 
 ### Login Command Line Options
+
+```bash
+onelogin-aws-connector login \
+    --aws-profile [AWS_PROFILE_NAME] \
+    --aws-region [AWS_REGION_NAME]
+```
 
 #### --aws-profile `string`
 
