@@ -24,9 +24,10 @@ type ServiceConfig struct {
 
 // AppConfig stores configured data
 type AppConfig struct {
-	AppID        string `toml:"app_id"`
-	RoleArn      string `toml:"role_arn"`
-	PrincipalArn string `toml:"principal_arn"`
+	AppID           string `toml:"app_id"`
+	RoleArn         string `toml:"role_arn"`
+	PrincipalArn    string `toml:"principal_arn"`
+	DurationSeconds int64  `toml:"duration_seconds"`
 }
 
 // Load creates a Loaded Config

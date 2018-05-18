@@ -25,6 +25,7 @@ type Parameters struct {
 	Subdomain       string
 	PrincipalArn    string
 	RoleArn         string
+	DurationSeconds int64
 }
 
 // New creates a Login instance
@@ -50,9 +51,10 @@ func (l *Login) Execute() (*sts.Credentials, error) {
 	}
 
 	assumeRoleInput := &sts.AssumeRoleWithSAMLInput{
-		PrincipalArn:  &l.Params.PrincipalArn,
-		RoleArn:       &l.Params.RoleArn,
-		SAMLAssertion: &saml.SAML,
+		PrincipalArn:    &l.Params.PrincipalArn,
+		RoleArn:         &l.Params.RoleArn,
+		SAMLAssertion:   &saml.SAML,
+		DurationSeconds: &l.Params.DurationSeconds,
 	}
 	assumeRoleOutput, err := l.STS.AssumeRoleWithSAML(assumeRoleInput)
 	if err != nil {
