@@ -65,6 +65,7 @@ func TestConfigureCmdWithService(t *testing.T) {
     app_id = "app-id"
     role_arn = "role-arn"
     principal_arn = "provider-arn"
+    duration_seconds = 3600
 `
 	if actual != expected {
 		t.Errorf("'%v' is not equal '%v'", actual, expected)
@@ -110,6 +111,7 @@ func TestConfigureCmdWithDefault(t *testing.T) {
     app_id = "new-app-id"
     role_arn = "new-role-arn"
     principal_arn = "new-provider-arn"
+    duration_seconds = 3600
 `
 	if actual != expected {
 		t.Errorf("'%v' is not equal '%v'", actual, expected)

@@ -78,6 +78,10 @@ AWS Provider ARN connected to OneLogin AppID
 
 AWS Role ARN
 
+#### --duration `int`
+
+The value can range from 900 seconds (15 minutes) to maximum session duration setting (default 3600 seconds (1 hour)).
+
 #### --aws-profile string
 
 AWS Profile Name (default "default")

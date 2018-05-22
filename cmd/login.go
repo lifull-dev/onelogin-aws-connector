@@ -82,6 +82,10 @@ var loginCmd = &cobra.Command{
 				return nil, err
 			}
 			password := string(tmp)
+			duration := app.DurationSeconds
+			if duration == 0 {
+				duration = 3600
+			}
 			if debug {
 				fmt.Println("")
 				log.Println("Login Parameters:")
@@ -91,6 +95,7 @@ var loginCmd = &cobra.Command{
 				log.Printf("  Password:\t\t%v\n", password)
 				log.Printf("  PrincipalArn:\t%v\n", app.PrincipalArn)
 				log.Printf("  RoleArn:\t\t%v\n", app.RoleArn)
+				log.Printf("  DurationSeconds:\t%v\n", duration)
 			}
 			l := login.New(config, &login.Parameters{
 				UsernameOrEmail: service.UsernameOrEmail,
@@ -99,6 +104,7 @@ var loginCmd = &cobra.Command{
 				Subdomain:       service.Subdomain,
 				PrincipalArn:    app.PrincipalArn,
 				RoleArn:         app.RoleArn,
+				DurationSeconds: duration,
 			})
 			creds, err := l.Execute()
 			if err != nil {

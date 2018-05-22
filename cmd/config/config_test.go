@@ -154,10 +154,12 @@ func TestLoadNormalFile(t *testing.T) {
     app_id = "app-id"
     role_arn = "role-arn"
     principal_arn = "provider-arn"
+    duration_seconds = 0
   [app.other]
     app_id = "other-app-id"
     role_arn = "other-role-arn"
     principal_arn = "other-provider-arn"
+    duration_seconds = 0
 `
 	if actual != expected {
 		t.Errorf("%s is not equal %s", actual, expected)
@@ -196,10 +198,12 @@ func TestLoadNormalFile(t *testing.T) {
     app_id = "app-id"
     role_arn = "role-arn"
     principal_arn = "provider-arn"
+    duration_seconds = 0
   [app.other]
     app_id = "new-app-id"
     role_arn = "new-role-arn"
     principal_arn = "new-principal-arn"
+    duration_seconds = 0
 `
 	if actual != expected {
 		t.Errorf("%v is not equal %v", actual, expected)

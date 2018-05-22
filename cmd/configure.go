@@ -26,6 +26,7 @@ import (
 var appID string
 var roleArn string
 var principalArn string
+var duration int64
 
 // configureCmd represents the configure command
 var configureCmd = &cobra.Command{
@@ -47,6 +48,7 @@ func init() {
 	configureCmd.Flags().StringVarP(&appID, "app-id", "", "", "OneLogin AppID")
 	configureCmd.Flags().StringVarP(&roleArn, "role-arn", "", "", "Login Target AWS Role ARN")
 	configureCmd.Flags().StringVarP(&principalArn, "principal-arn", "", "", "AWS Provider ARN connected to OneLogin AppID")
+	configureCmd.Flags().Int64VarP(&duration, "duration", "", 3600, "The session duration to assuming the role")
 	configureCmd.Flags().StringVarP(&awsProfile, "aws-profile", "", awsProfile, "aws profile name")
 }
 
@@ -67,6 +69,9 @@ func initAppConfig(file string, profile string) error {
 	}
 	if principalArn != "" {
 		appConfig.PrincipalArn = principalArn
+	}
+	if duration != 0 {
+		appConfig.DurationSeconds = duration
 	}
 	serviceProfile := "default"
 	if _, ok := c.Service[serviceProfile]; !ok {
