@@ -274,4 +274,34 @@ func TestCredentialsRefresh(t *testing.T) {
 			t.Errorf("Credentials.Get() error = %#v", err)
 		}
 	})
+	t.Run("when invalid refresh token", func(t *testing.T) {
+		e := fmt.Errorf("[401] Unauthorized: Invalid Token")
+		n, _ := time.Parse("2006-01-02T15:04:05Z", time.Now().UTC().Format("2006-01-02T15:04:05Z"))
+		a := &TokenAPIMock{
+			GenerateResponse: &tokens.GenerateResponse{
+				AccessToken:  "access-token",
+				RefreshToken: "refresh-token",
+				CreatedAt:    n.Format("2006-01-02T15:04:05Z"),
+				ExpiresIn:    100,
+			},
+			RefreshRequestVerifier: func(t *tokens.RefreshRequest) error {
+				return e
+			},
+		}
+		v := &Value{
+			AccessToken:      "access-token",
+			RefreshToken:     "refresh-token",
+			CreatedAt:        n,
+			AccessExpiresAt:  n.Add(-10 * time.Second),
+			RefreshExpiresAt: n.Add(100 * time.Second),
+		}
+		c := &Credentials{
+			Credentials: v,
+			Tokens:      a,
+		}
+		_, err := c.Get()
+		if err != nil {
+			t.Errorf("Credentials.Get() error = %#v", err)
+		}
+	})
 }

@@ -54,7 +54,13 @@ func (c *Credentials) Refresh() error {
 			}
 			res, err = c.Tokens.Refresh(input)
 			if err != nil {
-				return err
+				if err.Error() != "[401] Unauthorized: Invalid Token" {
+					return err
+				}
+				res, err = c.Tokens.Generate()
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			res, err = c.Tokens.Generate()
