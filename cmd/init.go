@@ -31,7 +31,7 @@ var usernameOrEmail string
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialze settings for call to onelogin api ",
+	Short: "Initialize settings for call to onelogin api ",
 	Long:  `Init is initializing settings for onelogin api.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if endpoint != "" {

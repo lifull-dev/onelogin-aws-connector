@@ -17,12 +17,12 @@ import (
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin/credentials"
 )
 
-func TestSAMLAssertion_Generate(t *testing.T) {
+func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 	type fields struct {
 		config *onelogin.Config
 	}
 	type args struct {
-		input *GenerateRequest
+		input *VerifyFactorRequest
 	}
 	type response struct {
 		code int
@@ -40,21 +40,21 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 			RefreshExpiresAt: time.Now().UTC().Add(time.Second),
 		}),
 	}
-	request := &GenerateRequest{
-		UsernameOrEmail: "username-or-email",
-		Password:        "password",
-		AppID:           "app-id",
-		Subdomain:       "subdomain",
-		IPAddress:       "ip-address",
+	request := &VerifyFactorRequest{
+		AppID:       "app-id",
+		DeviceID:    "device_id",
+		StateToken:  "state_token",
+		OtpToken:    "otp_token",
+		DoNotNotify: false,
 	}
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		req     *GenerateRequest
+		req     *VerifyFactorRequest
 		res     *response
-		want    *GenerateResponse
+		want    *VerifyFactorResponse
 		wantErr bool
 	}{
 		{
@@ -78,8 +78,8 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 					"data": "Base64 Encoded SAML Data"
 				}`,
 			},
-			want: &GenerateResponse{
-				Status: &GenerateResponseStatus{
+			want: &VerifyFactorResponse{
+				Status: &VerifyFactorResponseStatus{
 					Type:    "success",
 					Message: "Success",
 					Error:   false,
@@ -88,90 +88,6 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 				SAML: "Base64 Encoded SAML Data",
 			},
 			wantErr: false,
-		},
-		{
-			name: "MFA Required",
-			fields: fields{
-				config: config,
-			},
-			args: args{
-				input: request,
-			},
-			req: request,
-			res: &response{
-				code: 400,
-				body: `{
-					"status": {
-						"type":    "success",
-						"message": "MFA is required for this user",
-						"error":   false,
-						"code":    200
-					},
-					"data": [
-						{
-							"state_token": "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
-							"devices": [
-								{
-									"device_id": 666666,
-									"device_type": "Google Authenticator"
-								}
-							],
-							"callback_url": "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
-							"user": {
-								"lastname": "姓",
-								"username": "username",
-								"email": "username@example.com",
-								"firstname": "名",
-								"id": 12345678
-							}
-						}
-					]
-				}`,
-			},
-			want: &GenerateResponse{
-				Status: &GenerateResponseStatus{
-					Type:    "success",
-					Message: "MFA is required for this user",
-					Error:   false,
-					Code:    200,
-				},
-				Factors: []GenerateResponseFactor{
-					{
-						StateToken: "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
-						Devices: []GenerateResponseFactorDevice{
-							{
-								DeviceID:   666666,
-								DeviceType: "Google Authenticator",
-							},
-						},
-						CallbackURL: "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
-						User: &GenerateResponseFactorUser{
-							LastName:  "姓",
-							UserName:  "username",
-							Email:     "username@example.com",
-							FirstName: "名",
-							ID:        12345678,
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid JSON",
-			fields: fields{
-				config: config,
-			},
-			args: args{
-				input: request,
-			},
-			req: request,
-			res: &response{
-				code: 200,
-				body: `invalid`,
-			},
-			want:    nil,
-			wantErr: true,
 		},
 		{
 			name: "error 40x",
@@ -196,6 +112,22 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "invalid JSON",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: request,
+			},
+			req: request,
+			res: &response{
+				code: 200,
+				body: `invalid`,
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -210,7 +142,7 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 				if err != nil {
 					t.Errorf("%v", err)
 				}
-				var input GenerateRequest
+				var input VerifyFactorRequest
 				if err := json.Unmarshal(body, &input); err != nil {
 					t.Errorf("%v", err)
 				}
@@ -230,12 +162,12 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 				config:     tt.fields.config,
 				HTTPClient: httpClient,
 			}
-			got, err := s.Generate(tt.args.input)
+			got, err := s.VerifyFactor(tt.args.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("SAMLAssertion.Generate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("SAMLAssertion.VerifyFactor() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SAMLAssertion.Generate() = %+v, want %+v", got, tt.want)
+				t.Errorf("SAMLAssertion.VerifyFactor() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}

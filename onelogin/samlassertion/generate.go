@@ -1,13 +1,7 @@
 package samlassertion
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-
-	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
 	"github.com/pkg/errors"
 )
 
@@ -22,10 +16,23 @@ type GenerateRequest struct {
 	IPAddress       string `json:"ip_address"`
 }
 
-// GenerateResponse response of OneLogin Generate Tokens v2 API
+// GenerateTemporaryResponse response of OneLogin Generate Tokens v2 API
 type GenerateResponse struct {
+	Status  *GenerateResponseStatus `json:"status"`
+	SAML    string
+	Factors []GenerateResponseFactor
+}
+
+// GenerateResponse response of OneLogin Generate Tokens v2 API
+type GenerateSAMLResponse struct {
 	Status *GenerateResponseStatus `json:"status"`
 	SAML   string                  `json:"data"`
+}
+
+// GenerateFactorsResponse response of OneLogin Generate Tokens v2 API
+type GenerateFactorsResponse struct {
+	Status  *GenerateResponseStatus  `json:"status"`
+	Factors []GenerateResponseFactor `json:"data"`
 }
 
 // GenerateResponseStatus status
@@ -36,45 +43,30 @@ type GenerateResponseStatus struct {
 	Code    int    `json:"code"`
 }
 
-// SAMLAssertion OneLogin Generate SAML Assertion API
-type SAMLAssertion struct {
-	config     *onelogin.Config
-	HTTPClient *http.Client
+type GenerateResponseFactor struct {
+	StateToken  string                         `json:"state_token"`
+	Devices     []GenerateResponseFactorDevice `json:"devices"`
+	CallbackURL string                         `json:"callback_url"`
+	User        *GenerateResponseFactorUser    `json:"user"`
 }
 
-// NewSAMLAssertion creates a SAMLAssertion
-func NewSAMLAssertion(config *onelogin.Config) *SAMLAssertion {
-	return &SAMLAssertion{
-		config:     config,
-		HTTPClient: &http.Client{},
-	}
+type GenerateResponseFactorDevice struct {
+	DeviceID   int    `json:"device_id"`
+	DeviceType string `json:"device_type"`
+}
+
+type GenerateResponseFactorUser struct {
+	LastName  string `json:"lastname"`
+	UserName  string `json:"username"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstname"`
+	ID        int    `json:"id"`
 }
 
 // Generate call generate tokens v2
 func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, error) {
 	inputJSON, err := json.Marshal(input)
-	if err != nil {
-		return nil, err
-	}
-	url := fmt.Sprintf("https://%s/api/1/saml_assertion", s.config.Endpoint)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(inputJSON)))
-	if err != nil {
-		return nil, err
-	}
-	creds, err := s.config.Credentials.Get()
-	if err != nil {
-		return nil, err
-	}
-	authorization := fmt.Sprintf("bearer:%s", creds.AccessToken)
-	req.Header.Set("Authorization", authorization)
-	req.Header.Set("Content-Type", "application/json")
-	client := s.HTTPClient
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := s.post("/api/1/saml_assertion", inputJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +76,19 @@ func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, err
 	}
 	if output.Status.Error {
 		return nil, errors.Errorf("[%d] %s: %s", output.Status.Code, output.Status.Type, output.Status.Message)
+	}
+	if output.Status.Message == "Success" {
+		var saml GenerateSAMLResponse
+		if err := json.Unmarshal(body, &saml); err != nil {
+			return nil, err
+		}
+		output.SAML = saml.SAML
+	} else {
+		var factors GenerateFactorsResponse
+		if err := json.Unmarshal(body, &factors); err != nil {
+			return nil, err
+		}
+		output.Factors = factors.Factors
 	}
 	return &output, nil
 }
