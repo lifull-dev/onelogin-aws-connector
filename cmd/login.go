@@ -41,6 +41,69 @@ import (
 var region string
 var force bool
 
+type LoginEvent struct {
+	reader *bufio.Reader
+}
+
+func NewLoginEvent(reader *bufio.Reader) *LoginEvent {
+	return &LoginEvent{
+		reader: reader,
+	}
+}
+
+func (m *LoginEvent) ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
+	if debug {
+		fmt.Println("")
+		log.Println("MFA Devices:")
+		for _, device := range devices {
+			log.Printf("  %v:\t\t%v\n", device.DeviceID, device.DeviceType)
+		}
+	}
+	length := len(devices)
+	selected := length
+	for {
+		fmt.Println("--------")
+		for i, device := range devices {
+			fmt.Printf("%d : %s\n", i, device.DeviceType)
+		}
+		fmt.Println("--------")
+		fmt.Print("Select your MFA device: ")
+		tmp, err := m.reader.ReadString('\n')
+		if err != nil {
+			return 0, err
+		}
+		tmp = strings.Trim(tmp, "\n")
+		if tmp == "" {
+			continue
+		}
+		selected, err = strconv.Atoi(tmp)
+		if err != nil {
+			return 0, err
+		}
+		if selected < length && selected >= 0 {
+			break
+		}
+	}
+	return selected, nil
+}
+
+func (m *LoginEvent) InputMFAToken() (string, error) {
+	var token string
+	var err error
+	for {
+		fmt.Print("Enter your MFA token: ")
+		token, err = m.reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		token = strings.Trim(token, "\n")
+		if token != "" {
+			break
+		}
+	}
+	return token, nil
+}
+
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
@@ -111,59 +174,8 @@ var loginCmd = &cobra.Command{
 				RoleArn:         app.RoleArn,
 				DurationSeconds: duration,
 			})
-			creds, err := l.Login(
-				func(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
-					if debug {
-						fmt.Println("")
-						log.Println("MFA Devices:")
-						for _, device := range devices {
-							log.Printf("  %v:\t\t%v\n", device.DeviceID, device.DeviceType)
-						}
-					}
-					reader := bufio.NewReader(os.Stdin)
-					length := len(devices)
-					selected := length
-					for {
-						fmt.Println("--------")
-						for i, device := range devices {
-							fmt.Printf("%d : %s\n", i, device.DeviceType)
-						}
-						fmt.Println("--------")
-						fmt.Print("Select your MFA device: ")
-						tmp, err := reader.ReadString('\n')
-						if err != nil {
-							return 0, err
-						}
-						tmp = strings.Trim(tmp, "\n")
-						if tmp == "" {
-							continue
-						}
-						selected, err = strconv.Atoi(tmp)
-						if err != nil {
-							return 0, err
-						}
-						if selected < length && selected >= 0 {
-							break
-						}
-					}
-					return selected, nil
-				},
-				func() (string, error) {
-					reader := bufio.NewReader(os.Stdin)
-					var token string
-					for {
-						fmt.Print("Enter your MFA token: ")
-						token, err = reader.ReadString('\n')
-						if err != nil {
-							return "", err
-						}
-						token = strings.Trim(token, "\n")
-						if token != "" {
-							break
-						}
-					}
-					return token, nil
-				})
+			creds, err := l.Login(NewLoginEvent(bufio.NewReader(os.Stdin)))
+
 			if err != nil {
 				return nil, err
 			}

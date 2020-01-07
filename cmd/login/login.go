@@ -12,6 +12,11 @@ import (
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin/samlassertion/samlassertioniface"
 )
 
+type Event interface {
+	ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error)
+	InputMFAToken() (string, error)
+}
+
 // Login represents login
 type Login struct {
 	SAMLAssertion samlassertioniface.SAMLAssertionAPI
@@ -39,7 +44,7 @@ func New(config *onelogin.Config, params *Parameters) *Login {
 	}
 }
 
-func (l *Login) Login(choice func(devices []samlassertion.GenerateResponseFactorDevice) (int, error), input func() (string, error)) (*sts.Credentials, error) {
+func (l *Login) Login(logic Event) (*sts.Credentials, error) {
 	assertion, err := l.generateAssertion()
 	if err != nil {
 		return nil, err
@@ -50,13 +55,13 @@ func (l *Login) Login(choice func(devices []samlassertion.GenerateResponseFactor
 		selected := 0
 		length := len(factor.Devices)
 		if length > 1 {
-			selected, err = choice(factor.Devices)
+			selected, err = logic.ChoiceDeviceIndex(factor.Devices)
 			if err != nil {
 				return nil, err
 			}
 		}
 		deviceID := factor.Devices[selected].DeviceID
-		token, err := input()
+		token, err := logic.InputMFAToken();
 		if err != nil {
 			return nil, err
 		}

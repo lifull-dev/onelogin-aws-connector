@@ -50,6 +50,20 @@ func (s *STSMock) AssumeRoleWithSAML(input *sts.AssumeRoleWithSAMLInput) (*sts.A
 	return s.AssumeRoleWithSAMLOutput, s.Error
 }
 
+type EventMock struct {
+	DeviceIndex int
+	ChoiceError error
+	MFAToken    string
+	InputError  error
+}
+
+func (m *EventMock) ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
+	return m.DeviceIndex, m.ChoiceError
+}
+func (m *EventMock) InputMFAToken() (string, error) {
+	return m.MFAToken, m.InputError
+}
+
 func createAssertion(t *testing.T) *SAMLAssertionMock {
 	return &SAMLAssertionMock{
 		GenerateResponse: &samlassertion.GenerateResponse{
@@ -209,12 +223,9 @@ func TestLogin_LoginWithoutMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		t.Errorf("%s", "Don't call choice function")
-		return 0, nil
-	}, func() (s string, err error) {
-		t.Errorf("%s", "Don't call mfa function")
-		return "", nil
+	_, err := l.Login(&EventMock{
+		ChoiceError: errors.New("Don't call choice function"),
+		InputError:  errors.New("Don't call input function"),
 	})
 	if err != nil {
 		t.Errorf("%v", err)
@@ -227,11 +238,8 @@ func TestLogin_LoginErrorWithoutMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		t.Errorf("%s", "Don't call choice function")
-		return 0, nil
-	}, func() (s string, err error) {
-		return "", nil
+	_, err := l.Login(&EventMock{
+		ChoiceError: errors.New("Don't call choice function"),
 	})
 	if err != nil && err.Error() != "SAML Assertion Generate Error" {
 		t.Errorf("'%s' is not equal 'SAML Assertion Generate Error'", err.Error())
@@ -244,11 +252,9 @@ func TestLogin_LoginWithSingleMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		t.Errorf("%s", "Don't call choice function")
-		return 0, nil
-	}, func() (s string, err error) {
-		return "765432", nil
+	_, err := l.Login(&EventMock{
+		ChoiceError: errors.New("Don't call choice function"),
+		MFAToken:    "765432",
 	})
 	if err != nil {
 		t.Errorf("%v", err)
@@ -261,10 +267,9 @@ func TestLogin_LoginWithMultipleMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		return 1, nil
-	}, func() (s string, err error) {
-		return "098765", nil
+	_, err := l.Login(&EventMock{
+		DeviceIndex: 1,
+		MFAToken:    "098765",
 	})
 	if err != nil {
 		t.Errorf("%v", err)
@@ -277,10 +282,8 @@ func TestLogin_LoginChoiceErrorWithMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		return 0, errors.Errorf("choice error")
-	}, func() (s string, err error) {
-		return "", nil
+	_, err := l.Login(&EventMock{
+		ChoiceError: errors.New("choice error"),
 	})
 	if err != nil && err.Error() != "choice error" {
 		t.Errorf("'%s' is not equal 'choice error'", err.Error())
@@ -293,11 +296,9 @@ func TestLogin_LoginMFAErrorWithMFA(t *testing.T) {
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
-	_, err := l.Login(func(devices []samlassertion.GenerateResponseFactorDevice) (i int, err error) {
-		t.Errorf("%s", "Don't call choice function")
-		return 0, nil
-	}, func() (s string, err error) {
-		return "", errors.Errorf("mfa error")
+	_, err := l.Login(&EventMock{
+		ChoiceError: errors.New("Don't call choice function"),
+		InputError:  errors.New("mfa error"),
 	})
 	if err != nil && err.Error() != "mfa error" {
 		t.Errorf("'%s' is not equal 'mfa error'", err.Error())
