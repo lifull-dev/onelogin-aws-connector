@@ -2,6 +2,7 @@ package samlassertion
 
 import (
 	"encoding/json"
+
 	"github.com/pkg/errors"
 )
 

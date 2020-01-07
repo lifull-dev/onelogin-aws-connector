@@ -3,9 +3,10 @@ package samlassertion
 import (
 	"bytes"
 	"fmt"
-	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
 )
 
 // SAMLAssertion OneLogin Generate SAML Assertion API

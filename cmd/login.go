@@ -17,7 +17,6 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/lifull-dev/onelogin-aws-connector/onelogin/samlassertion"
 	"log"
 	"os"
 	"path"
@@ -36,6 +35,7 @@ import (
 	"github.com/lifull-dev/onelogin-aws-connector/cmd/config"
 	"github.com/lifull-dev/onelogin-aws-connector/cmd/login"
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
+	"github.com/lifull-dev/onelogin-aws-connector/onelogin/samlassertion"
 )
 
 var region string

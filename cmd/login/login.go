@@ -1,10 +1,11 @@
 package login
 
 import (
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"strconv"
 
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin/samlassertion"
