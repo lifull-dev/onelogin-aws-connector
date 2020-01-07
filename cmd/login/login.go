@@ -39,7 +39,6 @@ type Parameters struct {
 func New(config *onelogin.Config, params *Parameters) *Login {
 	return &Login{
 		SAMLAssertion: samlassertion.NewSAMLAssertion(config),
-		STS:           sts.New(session.New()),
 		Params:        params,
 	}
 }
@@ -61,7 +60,7 @@ func (l *Login) Login(logic Event) (*sts.Credentials, error) {
 			}
 		}
 		deviceID := factor.Devices[selected].DeviceID
-		token, err := logic.InputMFAToken();
+		token, err := logic.InputMFAToken()
 		if err != nil {
 			return nil, err
 		}
@@ -98,6 +97,13 @@ func (l *Login) generateAssertionWithMFA(deviceId int, stateToken string, otpTok
 
 // Execute represents login flow
 func (l *Login) assumeRole(SAML string) (*sts.Credentials, error) {
+	if l.STS == nil {
+		s, err := session.NewSession()
+		if err != nil {
+			return nil, err
+		}
+		l.STS = sts.New(s)
+	}
 	assumeRoleInput := &sts.AssumeRoleWithSAMLInput{
 		PrincipalArn:    &l.Params.PrincipalArn,
 		RoleArn:         &l.Params.RoleArn,

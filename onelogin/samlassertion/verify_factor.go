@@ -34,6 +34,9 @@ type VerifyFactorResponseStatus struct {
 // VerifyFactor call VerifyFactor tokens v2
 func (s *SAMLAssertion) VerifyFactor(input *VerifyFactorRequest) (*VerifyFactorResponse, error) {
 	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
 	body, err := s.post("/api/1/saml_assertion/verify_factor", inputJSON)
 	if err != nil {
 		return nil, err

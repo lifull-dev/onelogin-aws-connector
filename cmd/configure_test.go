@@ -37,7 +37,10 @@ func TestConfigureCmdWithService(t *testing.T) {
 	}
 	file := dist.Name()
 	defer os.Remove(file)
-	io.Copy(dist, source)
+	_, err = io.Copy(dist, source)
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 
 	resetConfigureFlags()
 	appID = "app-id"
@@ -83,7 +86,10 @@ func TestConfigureCmdWithDefault(t *testing.T) {
 	}
 	file := dist.Name()
 	defer os.Remove(file)
-	io.Copy(dist, source)
+	_, err = io.Copy(dist, source)
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 
 	resetConfigureFlags()
 	appID = "new-app-id"

@@ -46,7 +46,9 @@ RefreshExpiresAt = %s`,
 		now.Add(2*time.Second).Format("2006-01-02T15:04:05Z"),
 		now.Add(3*time.Second).Format("2006-01-02T15:04:05Z"))
 	file := path.Join(CacheDir, fmt.Sprintf("onelogin.%s.cache", "client-token"))
-	ioutil.WriteFile(file, []byte(cache), 0666)
+	if err := ioutil.WriteFile(file, []byte(cache), 0666); err != nil {
+		t.Errorf("%#v", err)
+	}
 	defer os.Remove(file)
 	config := NewConfig("endpoint", "client-token", "client-secret")
 	if config.Endpoint != "endpoint" {

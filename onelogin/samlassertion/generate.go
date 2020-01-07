@@ -17,20 +17,20 @@ type GenerateRequest struct {
 	IPAddress       string `json:"ip_address"`
 }
 
-// GenerateTemporaryResponse response of OneLogin Generate Tokens v2 API
+// GenerateResponse response
 type GenerateResponse struct {
 	Status  *GenerateResponseStatus `json:"status"`
 	SAML    string
 	Factors []GenerateResponseFactor
 }
 
-// GenerateResponse response of OneLogin Generate Tokens v2 API
+// GenerateSAMLResponse response of OneLogin Generate Tokens v2 API without mfa
 type GenerateSAMLResponse struct {
 	Status *GenerateResponseStatus `json:"status"`
 	SAML   string                  `json:"data"`
 }
 
-// GenerateFactorsResponse response of OneLogin Generate Tokens v2 API
+// GenerateFactorsResponse response of OneLogin Generate Tokens v2 API with mfa
 type GenerateFactorsResponse struct {
 	Status  *GenerateResponseStatus  `json:"status"`
 	Factors []GenerateResponseFactor `json:"data"`
@@ -67,6 +67,9 @@ type GenerateResponseFactorUser struct {
 // Generate call generate tokens v2
 func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, error) {
 	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
 	body, err := s.post("/api/1/saml_assertion", inputJSON)
 	if err != nil {
 		return nil, err
