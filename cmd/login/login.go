@@ -13,7 +13,7 @@ import (
 )
 
 type Event interface {
-	ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error)
+	ChooseDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error)
 	InputMFAToken() (string, error)
 }
 
@@ -54,7 +54,7 @@ func (l *Login) Login(logic Event) (*sts.Credentials, error) {
 		selected := 0
 		length := len(factor.Devices)
 		if length > 1 {
-			selected, err = logic.ChoiceDeviceIndex(factor.Devices)
+			selected, err = logic.ChooseDeviceIndex(factor.Devices)
 			if err != nil {
 				return nil, err
 			}

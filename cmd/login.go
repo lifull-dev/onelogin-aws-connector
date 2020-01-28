@@ -51,7 +51,7 @@ func NewLoginEvent(reader *bufio.Reader) *LoginEvent {
 	}
 }
 
-func (m *LoginEvent) ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
+func (m *LoginEvent) ChooseDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
 	if debug {
 		fmt.Println("")
 		log.Println("MFA Devices:")

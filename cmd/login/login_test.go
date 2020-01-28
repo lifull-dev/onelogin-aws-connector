@@ -52,13 +52,13 @@ func (s *STSMock) AssumeRoleWithSAML(input *sts.AssumeRoleWithSAMLInput) (*sts.A
 
 type EventMock struct {
 	DeviceIndex int
-	ChoiceError error
+	ChooseError error
 	MFAToken    string
 	InputError  error
 }
 
-func (m *EventMock) ChoiceDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
-	return m.DeviceIndex, m.ChoiceError
+func (m *EventMock) ChooseDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
+	return m.DeviceIndex, m.ChooseError
 }
 func (m *EventMock) InputMFAToken() (string, error) {
 	return m.MFAToken, m.InputError
@@ -224,7 +224,7 @@ func TestLogin_LoginWithoutMFA(t *testing.T) {
 		Params:        createDefaultParams(),
 	}
 	_, err := l.Login(&EventMock{
-		ChoiceError: errors.New("Don't call choice function"),
+		ChooseError: errors.New("Don't call choose function"),
 		InputError:  errors.New("Don't call input function"),
 	})
 	if err != nil {
@@ -239,7 +239,7 @@ func TestLogin_LoginErrorWithoutMFA(t *testing.T) {
 		Params:        createDefaultParams(),
 	}
 	_, err := l.Login(&EventMock{
-		ChoiceError: errors.New("Don't call choice function"),
+		ChooseError: errors.New("Don't call choose function"),
 	})
 	if err != nil && err.Error() != "SAML Assertion Generate Error" {
 		t.Errorf("'%s' is not equal 'SAML Assertion Generate Error'", err.Error())
@@ -253,7 +253,7 @@ func TestLogin_LoginWithSingleMFA(t *testing.T) {
 		Params:        createDefaultParams(),
 	}
 	_, err := l.Login(&EventMock{
-		ChoiceError: errors.New("Don't call choice function"),
+		ChooseError: errors.New("Don't call choose function"),
 		MFAToken:    "765432",
 	})
 	if err != nil {
@@ -276,17 +276,17 @@ func TestLogin_LoginWithMultipleMFA(t *testing.T) {
 	}
 }
 
-func TestLogin_LoginChoiceErrorWithMFA(t *testing.T) {
+func TestLogin_LoginChooseErrorWithMFA(t *testing.T) {
 	l := &Login{
 		SAMLAssertion: createAssertionForMultipleMFA(t),
 		STS:           createSTS(t),
 		Params:        createDefaultParams(),
 	}
 	_, err := l.Login(&EventMock{
-		ChoiceError: errors.New("choice error"),
+		ChooseError: errors.New("choose error"),
 	})
-	if err != nil && err.Error() != "choice error" {
-		t.Errorf("'%s' is not equal 'choice error'", err.Error())
+	if err != nil && err.Error() != "choose error" {
+		t.Errorf("'%s' is not equal 'choose error'", err.Error())
 	}
 }
 
@@ -297,7 +297,7 @@ func TestLogin_LoginMFAErrorWithMFA(t *testing.T) {
 		Params:        createDefaultParams(),
 	}
 	_, err := l.Login(&EventMock{
-		ChoiceError: errors.New("Don't call choice function"),
+		ChooseError: errors.New("Don't call choose function"),
 		InputError:  errors.New("mfa error"),
 	})
 	if err != nil && err.Error() != "mfa error" {
