@@ -2,9 +2,12 @@ package samlassertion
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
 )
@@ -15,12 +18,150 @@ type SAMLAssertion struct {
 	HTTPClient *http.Client
 }
 
+
+// https://developers.onelogin.com/api-docs/1/saml-assertions/generate-saml-assertion
+
+// GenerateRequest request for OneLogin Generate Tokens v2 API
+type GenerateRequest struct {
+	UsernameOrEmail string `json:"username_or_email"`
+	Password        string `json:"password"`
+	AppID           string `json:"app_id"`
+	Subdomain       string `json:"subdomain"`
+	IPAddress       string `json:"ip_address"`
+}
+
+// GenerateResponse response
+type GenerateResponse struct {
+	Status  *GenerateResponseStatus `json:"status"`
+	SAML    string
+	Factors []GenerateResponseFactor
+}
+
+// GenerateSAMLResponse response of OneLogin Generate Tokens v2 API without mfa
+type GenerateSAMLResponse struct {
+	Status *GenerateResponseStatus `json:"status"`
+	SAML   string                  `json:"data"`
+}
+
+// GenerateFactorsResponse response of OneLogin Generate Tokens v2 API with mfa
+type GenerateFactorsResponse struct {
+	Status  *GenerateResponseStatus  `json:"status"`
+	Factors []GenerateResponseFactor `json:"data"`
+}
+
+// GenerateResponseStatus status
+type GenerateResponseStatus struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+	Error   bool   `json:"error"`
+	Code    int    `json:"code"`
+}
+
+type GenerateResponseFactor struct {
+	StateToken  string                         `json:"state_token"`
+	Devices     []GenerateResponseFactorDevice `json:"devices"`
+	CallbackURL string                         `json:"callback_url"`
+	User        *GenerateResponseFactorUser    `json:"user"`
+}
+
+type GenerateResponseFactorDevice struct {
+	DeviceID   int    `json:"device_id"`
+	DeviceType string `json:"device_type"`
+}
+
+type GenerateResponseFactorUser struct {
+	LastName  string `json:"lastname"`
+	UserName  string `json:"username"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstname"`
+	ID        int    `json:"id"`
+}
+
+// https://developers.onelogin.com/api-docs/1/saml-assertions/verify-factor
+
+// VerifyFactorRequest request for OneLogin VerifyFactor Tokens v2 API
+type VerifyFactorRequest struct {
+	AppID       string `json:"app_id"`
+	DeviceID    string `json:"device_id"`
+	StateToken  string `json:"state_token"`
+	OtpToken    string `json:"otp_token"`
+	DoNotNotify bool   `json:"do_not_notify"`
+}
+
+// VerifyFactorTemporaryResponse response of OneLogin VerifyFactor Tokens v2 API
+type VerifyFactorResponse struct {
+	Status *VerifyFactorResponseStatus `json:"status"`
+	SAML   string                      `json:"data"`
+}
+
+// VerifyFactorResponseStatus status
+type VerifyFactorResponseStatus struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+	Error   bool   `json:"error"`
+	Code    int    `json:"code"`
+}
+
 // NewSAMLAssertion creates a SAMLAssertion
 func NewSAMLAssertion(config *onelogin.Config) *SAMLAssertion {
 	return &SAMLAssertion{
 		config:     config,
 		HTTPClient: &http.Client{},
 	}
+}
+
+// Generate call generate tokens v2
+func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, error) {
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+	body, err := s.post("/api/1/saml_assertion", inputJSON)
+	if err != nil {
+		return nil, err
+	}
+	var output GenerateResponse
+	if err := json.Unmarshal(body, &output); err != nil {
+		return nil, err
+	}
+	if output.Status.Error {
+		return nil, errors.Errorf("[%d] %s: %s", output.Status.Code, output.Status.Type, output.Status.Message)
+	}
+	if output.Status.Message == "Success" {
+		var saml GenerateSAMLResponse
+		if err := json.Unmarshal(body, &saml); err != nil {
+			return nil, err
+		}
+		output.SAML = saml.SAML
+	} else {
+		var factors GenerateFactorsResponse
+		if err := json.Unmarshal(body, &factors); err != nil {
+			return nil, err
+		}
+		output.Factors = factors.Factors
+	}
+	return &output, nil
+}
+
+
+// VerifyFactor call VerifyFactor tokens v2
+func (s *SAMLAssertion) VerifyFactor(input *VerifyFactorRequest) (*VerifyFactorResponse, error) {
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+	body, err := s.post("/api/1/saml_assertion/verify_factor", inputJSON)
+	if err != nil {
+		return nil, err
+	}
+	var output VerifyFactorResponse
+	if err := json.Unmarshal(body, &output); err != nil {
+		return nil, err
+	}
+	if output.Status.Error {
+		return nil, errors.Errorf("[%d] %s: %s", output.Status.Code, output.Status.Type, output.Status.Message)
+	}
+	return &output, nil
 }
 
 // post OneLogin API Request
