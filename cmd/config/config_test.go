@@ -22,7 +22,10 @@ func TestLoadNoFile(t *testing.T) {
 	if len(c.App) > 0 {
 		t.Errorf("AppConfigs is not empty: %#v", c.App)
 	}
-	c.Save()
+	err = c.Save()
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Errorf("%#v", err)
@@ -49,7 +52,10 @@ func TestLoadServiceOnlyFile(t *testing.T) {
 	file := dist.Name()
 
 	defer os.Remove(file)
-	io.Copy(dist, source)
+	_, err = io.Copy(dist, source)
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 
 	c, err := Load(file)
 	if err != nil {
@@ -61,7 +67,10 @@ func TestLoadServiceOnlyFile(t *testing.T) {
 	if len(c.App) > 0 {
 		t.Errorf("AppConfigs is not empty: %#v", c.App)
 	}
-	c.Save()
+	err = c.Save()
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Errorf("%#v", err)
@@ -89,7 +98,10 @@ func TestLoadServiceOnlyFile(t *testing.T) {
 		UsernameOrEmail: "new-username-or-email",
 	}
 	c.Service["default"] = service
-	c.Save()
+	err = c.Save()
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 	data, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Errorf("%#v", err)
@@ -123,7 +135,10 @@ func TestLoadNormalFile(t *testing.T) {
 	file := dist.Name()
 
 	defer os.Remove(file)
-	io.Copy(dist, source)
+	_, err = io.Copy(dist, source)
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 
 	c, err := Load(file)
 	if err != nil {
@@ -135,7 +150,10 @@ func TestLoadNormalFile(t *testing.T) {
 	if len(c.App) != 2 {
 		t.Errorf("AppConfigs is not empty: %#v", c.App)
 	}
-	c.Save()
+	err = c.Save()
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Errorf("%#v", err)
@@ -179,7 +197,10 @@ func TestLoadNormalFile(t *testing.T) {
 	}
 	c.Service["default"] = service
 	c.App["other"] = app
-	c.Save()
+	err = c.Save()
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 	data, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Errorf("%#v", err)

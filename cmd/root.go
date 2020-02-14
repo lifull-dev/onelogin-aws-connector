@@ -25,11 +25,7 @@ import (
 var (
 	awsProfile string
 	debug      bool
-)
-
-var (
 	configFile string
-	cacheFile  string
 	cacheDir   string
 	awsDir     string
 )
@@ -74,7 +70,6 @@ func init() {
 		}
 	}
 	configFile = path.Join(dir, "config.toml")
-	cacheFile = path.Join(cacheDir, "response.cache")
 	awsProfile = os.Getenv("AWS_PROFILE")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug mode")
 }

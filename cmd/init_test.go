@@ -54,7 +54,10 @@ func TestInitCmdWithConfigFile(t *testing.T) {
 	}
 	file := dist.Name()
 	defer os.Remove(file)
-	io.Copy(dist, source)
+	_, err = io.Copy(dist, source)
+	if err != nil {
+		t.Errorf("%#v", err)
+	}
 
 	resetInitFlags()
 	endpoint = "new-api-server"

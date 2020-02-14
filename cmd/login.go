@@ -15,10 +15,13 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,10 +35,74 @@ import (
 	"github.com/lifull-dev/onelogin-aws-connector/cmd/config"
 	"github.com/lifull-dev/onelogin-aws-connector/cmd/login"
 	"github.com/lifull-dev/onelogin-aws-connector/onelogin"
+	"github.com/lifull-dev/onelogin-aws-connector/onelogin/samlassertion"
 )
 
 var region string
 var force bool
+
+type LoginEvent struct {
+	reader *bufio.Reader
+}
+
+func NewLoginEvent(reader *bufio.Reader) *LoginEvent {
+	return &LoginEvent{
+		reader: reader,
+	}
+}
+
+func (m *LoginEvent) ChooseDeviceIndex(devices []samlassertion.GenerateResponseFactorDevice) (int, error) {
+	if debug {
+		fmt.Println("")
+		log.Println("MFA Devices:")
+		for _, device := range devices {
+			log.Printf("  %v:\t\t%v\n", device.DeviceID, device.DeviceType)
+		}
+	}
+	length := len(devices)
+	selected := length
+	for {
+		fmt.Println("--------")
+		for i, device := range devices {
+			fmt.Printf("%d : %s\n", i, device.DeviceType)
+		}
+		fmt.Println("--------")
+		fmt.Print("Select your MFA device: ")
+		tmp, err := m.reader.ReadString('\n')
+		if err != nil {
+			return 0, err
+		}
+		tmp = strings.Trim(tmp, "\n")
+		if tmp == "" {
+			continue
+		}
+		selected, err = strconv.Atoi(tmp)
+		if err != nil {
+			return 0, err
+		}
+		if selected < length && selected >= 0 {
+			break
+		}
+	}
+	return selected, nil
+}
+
+func (m *LoginEvent) InputMFAToken() (string, error) {
+	var token string
+	var err error
+	for {
+		fmt.Print("Enter your MFA token: ")
+		token, err = m.reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		token = strings.Trim(token, "\n")
+		if token != "" {
+			break
+		}
+	}
+	return token, nil
+}
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
@@ -76,12 +143,13 @@ var loginCmd = &cobra.Command{
 				log.Printf("  RefreshExpiresAt:\t%v\n", creds.RefreshExpiresAt)
 			}
 
-			fmt.Print("Password: ")
+			fmt.Print("Enter your password: ")
 			tmp, err := terminal.ReadPassword(int(syscall.Stdin))
 			if err != nil {
 				return nil, err
 			}
 			password := string(tmp)
+			fmt.Println("")
 			duration := app.DurationSeconds
 			if duration == 0 {
 				duration = 3600
@@ -106,22 +174,10 @@ var loginCmd = &cobra.Command{
 				RoleArn:         app.RoleArn,
 				DurationSeconds: duration,
 			})
-			creds, err := l.Execute()
+			creds, err := l.Login(NewLoginEvent(bufio.NewReader(os.Stdin)))
+
 			if err != nil {
-				if debug {
-					log.Println(err.Error())
-				}
-				if err.Error() == "[401] Unauthorized: Invalid Token" ||
-					err.Error() == "[401] Unauthorized: Authentication Failure" {
-					config.Credentials.Credentials = nil
-					if err := config.Save(); err != nil {
-						return nil, err
-					}
-					creds, err = l.Execute()
-				}
-				if err != nil {
-					return nil, err
-				}
+				return nil, err
 			}
 
 			if debug {
@@ -137,10 +193,10 @@ var loginCmd = &cobra.Command{
 				"aws_session_token":     *creds.SessionToken,
 			}
 			awsCredentials := configuration.NewCredentials(awsDir, awsProfile)
-			awsCredentials.Save(options)
+			_ = awsCredentials.Save(options)
 			if region != "" {
 				awsConfig := configuration.NewConfig(awsDir, awsProfile)
-				awsConfig.Save(region)
+				_ = awsConfig.Save(region)
 			}
 			return creds, nil
 		})

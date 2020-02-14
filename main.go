@@ -14,8 +14,11 @@
 
 package main
 
-import "github.com/lifull-dev/onelogin-aws-connector/cmd"
-import "log"
+import (
+	"log"
+
+	"github.com/lifull-dev/onelogin-aws-connector/cmd"
+)
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
