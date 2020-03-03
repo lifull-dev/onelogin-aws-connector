@@ -59,8 +59,12 @@ func (l *Login) Login(logic Event) (*sts.Credentials, error) {
 				return nil, err
 			}
 		}
-		deviceID := factor.Devices[selected].DeviceID
-		token, err := logic.InputMFAToken()
+		device := factor.Devices[selected]
+		deviceID := device.DeviceID
+		var token string
+		if !device.DoNotifying {
+			token, err = logic.InputMFAToken()
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +94,7 @@ func (l *Login) generateAssertionWithMFA(deviceId int, stateToken string, otpTok
 		DeviceID:    strconv.Itoa(deviceId),
 		StateToken:  stateToken,
 		OtpToken:    otpToken,
-		DoNotNotify: false,
+		DoNotNotify: otpToken != "",
 	}
 	return l.SAMLAssertion.VerifyFactor(input)
 }

@@ -271,6 +271,13 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 		OtpToken:    "otp_token",
 		DoNotNotify: false,
 	}
+	notifyRequest := &VerifyFactorRequest{
+		AppID:       "app-id",
+		DeviceID:    "device_id",
+		StateToken:  "state_token",
+		OtpToken:    "",
+		DoNotNotify: true,
+	}
 
 	tests := []struct {
 		name    string
@@ -312,6 +319,61 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 				SAML: "Base64 Encoded SAML Data",
 			},
 			wantErr: false,
+		},
+		{
+			name: "notify success",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: notifyRequest,
+			},
+			req: notifyRequest,
+			res: &response{
+				code: 200,
+				body: `{
+					"status": {
+						"type":    "success",
+						"message": "Success",
+						"error":   false,
+						"code":    200
+					},
+					"data": "Base64 Encoded SAML Data"
+				}`,
+			},
+			want: &VerifyFactorResponse{
+				Status: &VerifyFactorResponseStatus{
+					Type:    "success",
+					Message: "Success",
+					Error:   false,
+					Code:    200,
+				},
+				SAML: "Base64 Encoded SAML Data",
+			},
+			wantErr: false,
+		},
+		{
+			name: "notify error",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: notifyRequest,
+			},
+			req: notifyRequest,
+			res: &response{
+				code: 200,
+				body: `{
+					"status": {
+						"message": "Authentication pending on OL Protect",
+						"error": false,
+						"type": "pending",
+						"code": 200
+					}
+				}`,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name: "error 40x",
@@ -383,8 +445,10 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 			endpoint := fmt.Sprintf("%s:%s", u.Hostname(), u.Port())
 			tt.fields.config.Endpoint = endpoint
 			s := &SAMLAssertion{
-				config:     tt.fields.config,
-				HTTPClient: httpClient,
+				config:                   tt.fields.config,
+				HTTPClient:               httpClient,
+				verifyFactorLoopMax:      2,
+				verifyFactorLoopDuration: 100,
 			}
 			got, err := s.VerifyFactor(tt.args.input)
 			if (err != nil) != tt.wantErr {
