@@ -2,5 +2,5 @@ package main
 
 const (
 	// Version app version
-	Version string = "0.1.5"
+	Version string = "0.1.6"
 )

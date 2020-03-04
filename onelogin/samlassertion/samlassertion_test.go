@@ -142,6 +142,81 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 							{
 								DeviceID:   666666,
 								DeviceType: "Google Authenticator",
+								RequireOTPToken: true,
+							},
+						},
+						CallbackURL: "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
+						User: &GenerateResponseFactorUser{
+							LastName:  "姓",
+							UserName:  "username",
+							Email:     "username@example.com",
+							FirstName: "名",
+							ID:        12345678,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MFA Required with OneLogin Protect",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: request,
+			},
+			req: request,
+			res: &response{
+				code: 400,
+				body: `{
+					"status": {
+						"type":    "success",
+						"message": "MFA is required for this user",
+						"error":   false,
+						"code":    200
+					},
+					"data": [
+						{
+							"state_token": "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
+							"devices": [
+								{
+									"device_id": 666666,
+									"device_type": "OneLogin Protect"
+								}
+							],
+							"callback_url": "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
+							"user": {
+								"lastname": "姓",
+								"username": "username",
+								"email": "username@example.com",
+								"firstname": "名",
+								"id": 12345678
+							}
+						}
+					]
+				}`,
+			},
+			want: &GenerateResponse{
+				Status: &GenerateResponseStatus{
+					Type:    "success",
+					Message: "MFA is required for this user",
+					Error:   false,
+					Code:    200,
+				},
+				Factors: []GenerateResponseFactor{
+					{
+						StateToken: "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
+						Devices: []GenerateResponseFactorDevice{
+							{
+								DeviceID:   666666,
+								DeviceType: "OneLogin Protect",
+								RequireOTPToken: true,
+							},
+							{
+								DeviceID:   666666,
+								DeviceType: "Notify to OneLogin Protect",
+								RequireOTPToken: false,
 							},
 						},
 						CallbackURL: "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
@@ -271,6 +346,13 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 		OtpToken:    "otp_token",
 		DoNotNotify: false,
 	}
+	notifyRequest := &VerifyFactorRequest{
+		AppID:       "app-id",
+		DeviceID:    "device_id",
+		StateToken:  "state_token",
+		OtpToken:    "",
+		DoNotNotify: true,
+	}
 
 	tests := []struct {
 		name    string
@@ -312,6 +394,61 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 				SAML: "Base64 Encoded SAML Data",
 			},
 			wantErr: false,
+		},
+		{
+			name: "notify success",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: notifyRequest,
+			},
+			req: notifyRequest,
+			res: &response{
+				code: 200,
+				body: `{
+					"status": {
+						"type":    "success",
+						"message": "Success",
+						"error":   false,
+						"code":    200
+					},
+					"data": "Base64 Encoded SAML Data"
+				}`,
+			},
+			want: &VerifyFactorResponse{
+				Status: &VerifyFactorResponseStatus{
+					Type:    "success",
+					Message: "Success",
+					Error:   false,
+					Code:    200,
+				},
+				SAML: "Base64 Encoded SAML Data",
+			},
+			wantErr: false,
+		},
+		{
+			name: "notify error",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: notifyRequest,
+			},
+			req: notifyRequest,
+			res: &response{
+				code: 200,
+				body: `{
+					"status": {
+						"message": "Authentication pending on OL Protect",
+						"error": false,
+						"type": "pending",
+						"code": 200
+					}
+				}`,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name: "error 40x",
@@ -383,8 +520,10 @@ func TestSAMLAssertion_VerifyFactor(t *testing.T) {
 			endpoint := fmt.Sprintf("%s:%s", u.Hostname(), u.Port())
 			tt.fields.config.Endpoint = endpoint
 			s := &SAMLAssertion{
-				config:     tt.fields.config,
-				HTTPClient: httpClient,
+				config:                   tt.fields.config,
+				HTTPClient:               httpClient,
+				verifyFactorLoopMax:      2,
+				verifyFactorLoopDuration: 100,
 			}
 			got, err := s.VerifyFactor(tt.args.input)
 			if (err != nil) != tt.wantErr {

@@ -97,6 +97,7 @@ func createAssertionForSingleMFA(t *testing.T) *SAMLAssertionMock {
 						{
 							DeviceID:   345678,
 							DeviceType: "device type 1",
+							RequireOTPToken: true,
 						},
 					},
 				},
@@ -121,7 +122,7 @@ func createAssertionForSingleMFA(t *testing.T) *SAMLAssertionMock {
 			if request.OtpToken != "765432" {
 				t.Errorf("%s is not equal %s", request.OtpToken, "123456")
 			}
-			if request.DoNotNotify != false {
+			if !request.DoNotNotify {
 				t.Errorf("%v is not equal %v", request.DoNotNotify, false)
 			}
 			return nil
@@ -136,6 +137,7 @@ func createAssertionForMultipleMFA(t *testing.T) *SAMLAssertionMock {
 		samlassertion.GenerateResponseFactorDevice{
 			DeviceID:   987654,
 			DeviceType: "device type 2",
+			RequireOTPToken: true,
 		})
 	assertion.VerifyFactorInputVerifier = func(request *samlassertion.VerifyFactorRequest) error {
 		if request.AppID != "app-id" {
@@ -148,10 +150,40 @@ func createAssertionForMultipleMFA(t *testing.T) *SAMLAssertionMock {
 			t.Errorf("%s is not equal %s", request.StateToken, "state-token")
 		}
 		if request.OtpToken != "098765" {
-			t.Errorf("%s is not equal %s", request.OtpToken, "123456")
+			t.Errorf("%s is not equal %s", request.OtpToken, "098765")
 		}
-		if request.DoNotNotify != false {
+		if !request.DoNotNotify {
 			t.Errorf("%v is not equal %v", request.DoNotNotify, false)
+		}
+		return nil
+	}
+	return assertion
+}
+
+func createAssertionForNotify(t *testing.T) *SAMLAssertionMock {
+	assertion := createAssertionForSingleMFA(t)
+	assertion.GenerateResponse.Factors[0].Devices = append(
+		assertion.GenerateResponse.Factors[0].Devices,
+		samlassertion.GenerateResponseFactorDevice{
+			DeviceID:   987654,
+			DeviceType: "Notify OneLogin Protect",
+			RequireOTPToken: false,
+		})
+	assertion.VerifyFactorInputVerifier = func(request *samlassertion.VerifyFactorRequest) error {
+		if request.AppID != "app-id" {
+			t.Errorf("%s is not equal %s", request.AppID, "app-id")
+		}
+		if request.DeviceID != "987654" {
+			t.Errorf("%s is not equal %s", request.DeviceID, "0")
+		}
+		if request.StateToken != "state-token" {
+			t.Errorf("%s is not equal %s", request.StateToken, "state-token")
+		}
+		if request.OtpToken != "" {
+			t.Errorf("'%s' is not equal '%s'", request.OtpToken, "")
+		}
+		if request.DoNotNotify {
+			t.Errorf("%v is not equal %v", request.DoNotNotify, true)
 		}
 		return nil
 	}
@@ -270,6 +302,20 @@ func TestLogin_LoginWithMultipleMFA(t *testing.T) {
 	_, err := l.Login(&EventMock{
 		DeviceIndex: 1,
 		MFAToken:    "098765",
+	})
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+}
+
+func TestLogin_LoginWithNotify(t *testing.T) {
+	l := &Login{
+		SAMLAssertion: createAssertionForNotify(t),
+		STS:           createSTS(t),
+		Params:        createDefaultParams(),
+	}
+	_, err := l.Login(&EventMock{
+		DeviceIndex: 1,
 	})
 	if err != nil {
 		t.Errorf("%v", err)
