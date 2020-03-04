@@ -17,7 +17,6 @@ import (
 type SAMLAssertion struct {
 	config                   *onelogin.Config
 	HTTPClient               *http.Client
-	verifyFactorLoopCount    int
 	verifyFactorLoopMax      int
 	verifyFactorLoopDuration int
 }
@@ -68,9 +67,9 @@ type GenerateResponseFactor struct {
 }
 
 type GenerateResponseFactorDevice struct {
-	DeviceID    int    `json:"device_id"`
-	DeviceType  string `json:"device_type"`
-	DoNotifying bool
+	DeviceID        int    `json:"device_id"`
+	DeviceType      string `json:"device_type"`
+	RequireOTPToken bool
 }
 
 type GenerateResponseFactorUser struct {
@@ -111,7 +110,6 @@ func NewSAMLAssertion(config *onelogin.Config) *SAMLAssertion {
 	return &SAMLAssertion{
 		config:                   config,
 		HTTPClient:               &http.Client{},
-		verifyFactorLoopCount:    0,
 		verifyFactorLoopMax:      60,
 		verifyFactorLoopDuration: 1000,
 	}
@@ -146,12 +144,14 @@ func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, err
 			return nil, err
 		}
 		devices := factors.Factors[0].Devices
-		for _, device := range devices {
+		for i := range devices {
+			devices[i].RequireOTPToken = true
+			device := devices[i]
 			if device.DeviceType == "OneLogin Protect" {
 				devices = append(devices, GenerateResponseFactorDevice{
-					DeviceType:  "Notify to OneLogin Protect",
-					DeviceID:    device.DeviceID,
-					DoNotifying: true,
+					DeviceType:      "Notify to OneLogin Protect",
+					DeviceID:        device.DeviceID,
+					RequireOTPToken: false,
 				})
 			}
 		}
@@ -163,9 +163,10 @@ func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, err
 
 // VerifyFactor call VerifyFactor tokens v2
 func (s *SAMLAssertion) VerifyFactor(input *VerifyFactorRequest) (*VerifyFactorResponse, error) {
-	if !input.DoNotNotify {
-		s.verifyFactorLoopCount = 0
-	}
+	return s.verifyFactor(input, 0)
+}
+
+func (s *SAMLAssertion) verifyFactor(input *VerifyFactorRequest, loopCount int) (*VerifyFactorResponse, error) {
 	inputJSON, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
@@ -182,13 +183,12 @@ func (s *SAMLAssertion) VerifyFactor(input *VerifyFactorRequest) (*VerifyFactorR
 		return nil, errors.Errorf("[%d] %s: %s", output.Status.Code, output.Status.Type, output.Status.Message)
 	}
 	if output.Status.Type == "pending" {
-		if s.verifyFactorLoopCount >= s.verifyFactorLoopMax {
+		if loopCount >= s.verifyFactorLoopMax {
 			return nil, errors.Errorf("[%d] timed out: %s", output.Status.Code, output.Status.Message)
 		}
 		time.Sleep(time.Duration(s.verifyFactorLoopDuration))
-		s.verifyFactorLoopCount++
 		input.DoNotNotify = true
-		return s.VerifyFactor(input)
+		return s.verifyFactor(input, loopCount+1)
 	}
 	return &output, nil
 }

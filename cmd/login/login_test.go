@@ -97,6 +97,7 @@ func createAssertionForSingleMFA(t *testing.T) *SAMLAssertionMock {
 						{
 							DeviceID:   345678,
 							DeviceType: "device type 1",
+							RequireOTPToken: true,
 						},
 					},
 				},
@@ -136,6 +137,7 @@ func createAssertionForMultipleMFA(t *testing.T) *SAMLAssertionMock {
 		samlassertion.GenerateResponseFactorDevice{
 			DeviceID:   987654,
 			DeviceType: "device type 2",
+			RequireOTPToken: true,
 		})
 	assertion.VerifyFactorInputVerifier = func(request *samlassertion.VerifyFactorRequest) error {
 		if request.AppID != "app-id" {
@@ -148,7 +150,7 @@ func createAssertionForMultipleMFA(t *testing.T) *SAMLAssertionMock {
 			t.Errorf("%s is not equal %s", request.StateToken, "state-token")
 		}
 		if request.OtpToken != "098765" {
-			t.Errorf("%s is not equal %s", request.OtpToken, "123456")
+			t.Errorf("%s is not equal %s", request.OtpToken, "098765")
 		}
 		if !request.DoNotNotify {
 			t.Errorf("%v is not equal %v", request.DoNotNotify, false)
@@ -165,6 +167,7 @@ func createAssertionForNotify(t *testing.T) *SAMLAssertionMock {
 		samlassertion.GenerateResponseFactorDevice{
 			DeviceID:   987654,
 			DeviceType: "Notify OneLogin Protect",
+			RequireOTPToken: false,
 		})
 	assertion.VerifyFactorInputVerifier = func(request *samlassertion.VerifyFactorRequest) error {
 		if request.AppID != "app-id" {

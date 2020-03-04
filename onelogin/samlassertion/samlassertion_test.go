@@ -142,6 +142,81 @@ func TestSAMLAssertion_Generate(t *testing.T) {
 							{
 								DeviceID:   666666,
 								DeviceType: "Google Authenticator",
+								RequireOTPToken: true,
+							},
+						},
+						CallbackURL: "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
+						User: &GenerateResponseFactorUser{
+							LastName:  "姓",
+							UserName:  "username",
+							Email:     "username@example.com",
+							FirstName: "名",
+							ID:        12345678,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MFA Required with OneLogin Protect",
+			fields: fields{
+				config: config,
+			},
+			args: args{
+				input: request,
+			},
+			req: request,
+			res: &response{
+				code: 400,
+				body: `{
+					"status": {
+						"type":    "success",
+						"message": "MFA is required for this user",
+						"error":   false,
+						"code":    200
+					},
+					"data": [
+						{
+							"state_token": "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
+							"devices": [
+								{
+									"device_id": 666666,
+									"device_type": "OneLogin Protect"
+								}
+							],
+							"callback_url": "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",
+							"user": {
+								"lastname": "姓",
+								"username": "username",
+								"email": "username@example.com",
+								"firstname": "名",
+								"id": 12345678
+							}
+						}
+					]
+				}`,
+			},
+			want: &GenerateResponse{
+				Status: &GenerateResponseStatus{
+					Type:    "success",
+					Message: "MFA is required for this user",
+					Error:   false,
+					Code:    200,
+				},
+				Factors: []GenerateResponseFactor{
+					{
+						StateToken: "5xxx604x8xx9x694xx860173xxx3x78x3x870x56",
+						Devices: []GenerateResponseFactorDevice{
+							{
+								DeviceID:   666666,
+								DeviceType: "OneLogin Protect",
+								RequireOTPToken: true,
+							},
+							{
+								DeviceID:   666666,
+								DeviceType: "Notify to OneLogin Protect",
+								RequireOTPToken: false,
 							},
 						},
 						CallbackURL: "https://api.us.onelogin.com/api/1/saml_assertion/verify_factor",

@@ -62,11 +62,11 @@ func (l *Login) Login(logic Event) (*sts.Credentials, error) {
 		device := factor.Devices[selected]
 		deviceID := device.DeviceID
 		var token string
-		if !device.DoNotifying {
+		if device.RequireOTPToken {
 			token, err = logic.InputMFAToken()
-		}
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
 		}
 		verified, err := l.generateAssertionWithMFA(deviceID, factor.StateToken, token)
 		if err != nil {
