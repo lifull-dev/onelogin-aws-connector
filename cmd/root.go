@@ -58,7 +58,7 @@ func init() {
 		}
 	}
 	awsDir = path.Join(home, ".aws")
-	if err := os.Mkdir(dir, 0700); err != nil {
+	if err := os.Mkdir(awsDir, 0700); err != nil {
 		if !os.IsExist(err) {
 			errorExit(err)
 		}
