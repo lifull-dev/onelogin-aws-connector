@@ -193,10 +193,16 @@ var loginCmd = &cobra.Command{
 				"aws_session_token":     *creds.SessionToken,
 			}
 			awsCredentials := configuration.NewCredentials(awsDir, awsProfile)
-			_ = awsCredentials.Save(options)
+			err = awsCredentials.Save(options)
+			if err != nil {
+				return nil, err
+			}
 			if region != "" {
 				awsConfig := configuration.NewConfig(awsDir, awsProfile)
-				_ = awsConfig.Save(region)
+				err = awsConfig.Save(region)
+				if err != nil {
+					return nil, err
+				}
 			}
 			return creds, nil
 		})
