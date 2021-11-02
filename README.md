@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-go get github.com/lifull-dev/onelogin-aws-connector
+go install github.com/lifull-dev/onelogin-aws-connector@latest
 ```
 
 ## Using the OneLogin AWS Connector
