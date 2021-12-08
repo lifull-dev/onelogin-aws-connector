@@ -61,10 +61,16 @@ func (m *LoginEvent) ChooseDeviceIndex(devices []samlassertion.GenerateResponseF
 	}
 	length := len(devices)
 	selected := length
+	OneLoginProtectNotify := false
+	OneLoginProtectNum := 0
 	for {
 		fmt.Println("--------")
 		for i, device := range devices {
 			fmt.Printf("%d : %s\n", i, device.DeviceType)
+			if (!OneLoginProtectNotify && device.DeviceType == "OneLogin Protect") {
+				OneLoginProtectNotify = true
+				OneLoginProtectNum = i
+			}
 		}
 		fmt.Println("--------")
 		fmt.Print("Select your MFA device: ")

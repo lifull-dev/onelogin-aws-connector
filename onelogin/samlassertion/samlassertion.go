@@ -18,7 +18,6 @@ type SAMLAssertion struct {
 	HTTPClient *http.Client
 }
 
-
 // https://developers.onelogin.com/api-docs/1/saml-assertions/generate-saml-assertion
 
 // GenerateRequest request for OneLogin Generate Tokens v2 API
@@ -142,7 +141,6 @@ func (s *SAMLAssertion) Generate(input *GenerateRequest) (*GenerateResponse, err
 	}
 	return &output, nil
 }
-
 
 // VerifyFactor call VerifyFactor tokens v2
 func (s *SAMLAssertion) VerifyFactor(input *VerifyFactorRequest) (*VerifyFactorResponse, error) {
