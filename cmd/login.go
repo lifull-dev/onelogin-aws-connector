@@ -72,7 +72,7 @@ func (m *LoginEvent) ChooseDeviceIndex(devices []samlassertion.GenerateResponseF
 		if err != nil {
 			return 0, err
 		}
-		tmp = strings.Trim(tmp, "\n")
+		tmp = strings.Trim(tmp, "\n\r")
 		if tmp == "" {
 			continue
 		}
